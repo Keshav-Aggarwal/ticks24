@@ -1,0 +1,5 @@
+TRACE: 2016/09/02 16:31:25 tracelog.go:285: main : LogDirectoryCleanup : Started : BaseFilePath[logs] DaysToKeep[100]
+TRACE: 2016/09/02 16:31:25 tracelog.go:298: main : LogDirectoryCleanup : Info : CompareDate[2016-05-25 00:00:00 +0000 UTC]
+TRACE: 2016/09/02 16:31:25 tracelog.go:335: main : LogDirectoryCleanup : Info : Checking Directory[logs/2016-09-02] DaysOld[-100]
+TRACE: 2016/09/02 16:31:25 tracelog.go:353: main : LogDirectoryCleanup : Completed
+TRACE: 2016/09/02 16:32:28 logger.go:44: GET : Logger : Info : | 946.654µs | 200 | 0m 0k 140B   140B | 127.0.0.1 | Not Logged In | localhost:8000 | /user/vivek |
