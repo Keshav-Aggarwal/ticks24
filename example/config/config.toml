@@ -23,6 +23,12 @@ max_batch_size=1000
 
 [auth_service]
 ip="127.0.0.1"
+port=7002
+is_tcp=true
+is_http=false
+
+[login_service]
+ip="127.0.0.1"
 port=7001
 is_tcp=true
 is_http=false

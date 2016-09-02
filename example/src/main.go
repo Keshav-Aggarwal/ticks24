@@ -38,6 +38,14 @@ func main() {
 	}
 
 	router.GET("/user/:name", HelloUser)
+
+	// Authorization group
+	authRouter := router.Group("/auth")
+	authRouter.Use(service.AuthMiddleware.MiddlewareFunc())
+	{
+		authRouter.GET("/user/:name", HelloUser)
+	}
+
 	var stop chan bool
 	go func() {
 		service.Start(false)

@@ -1,15 +1,34 @@
 package auth
 
 import (
+	"errors"
 	"github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/goinggo/tracelog"
-	"github.com/vivek-yadav/ticks24"
+	"github.com/vivek-yadav/UserManagementService/utils"
+	"github.com/vivek-yadav/ticks24/config"
 	"net/http"
+	"net/rpc"
+	"strconv"
 	"time"
 )
 
-func Setup(service *ticks24.Service) *jwt.GinJWTMiddleware {
+func ConnectAuthService(ip string, port int) (client *rpc.Client, er error) {
+	typeCon := "tcp"
+
+	// LATER to setup other type of connections
+	//if this.Config.AuthService.IsHttp {
+	//	typeCon = "http"
+	//}
+	path := ip + ":" + strconv.Itoa(port)
+	client, er = rpc.DialHTTP(typeCon, path)
+	if er != nil {
+		er = errors.New("ERROR : Failed to conenct to Auth Service: (" + path + " (\n\t" + er.Error() + "\n)")
+	}
+	return
+}
+
+func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 	auth := &jwt.GinJWTMiddleware{
 		Realm:      "test zone",
 		Key:        []byte("secret key"),
@@ -21,44 +40,50 @@ func Setup(service *ticks24.Service) *jwt.GinJWTMiddleware {
 				Password: password,
 			}
 			var result bool
-			client, er := service.ConnectAuthService()
+			client, er := ConnectAuthService(config.LoginService.Ip, int(config.LoginService.Port))
 			if er != nil {
-				tracelog.Errorf(er, "auth", "Login", "Failed to connect to auth serive")
+				tracelog.Errorf(er, "auth", "Login", "Failed to connect to Login service")
 			}
-			er = client.Call("AuthRequest.IsAuth", &user, &result)
+			er = client.Call("User.IsLogin", &user, &result)
 			if er != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"code":    http.StatusBadRequest,
 					"message": er.Error(),
 				})
-				return
+				return email, false
 			}
-			//
-			//result,err := user.Get()
-			//if err != nil {
-			//	return email,false
-			//}
-			//if result {
-			//	h := c.Writer.Header()
-			//	h.Set("email", email)
-			//	return email, true
-			//}
-			return email, false
+			if result {
+				h := c.Writer.Header()
+				h.Set("email", email)
+				return email, true
+			}
+			return email, result
 		},
 		Authorizator: func(email string, c *gin.Context) bool {
-			//user := auth.User{
-			//	Email:email,
-			//}
-			//level := auth.GetAccessLevel(c.Request.Method)
-			//result,err := user.Auth(initConfig.ServerConfig.AppName,level,c.Request.URL.Path)
-			//if err != nil {
-			//	return false
-			//}
-			//if result {
-			//	h := c.Writer.Header()
-			//	h.Set("email", email)
-			//	return true
-			//}
+			req := AuthRequest{
+				Email:       email,
+				AppToken:    config.AppToken,
+				AccessLevel: utils.GetAccessLevel(c.Request.Method),
+				Path:        c.Request.RequestURI,
+			}
+			var result bool
+			client, er := ConnectAuthService(config.AuthService.Ip, int(config.AuthService.Port))
+			if er != nil {
+				tracelog.Errorf(er, "auth", "Authoriation", "Failed to connect to auth service")
+			}
+			er = client.Call("AuthRequest.IsAuth", &req, &result)
+			if er != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"code":    http.StatusBadRequest,
+					"message": er.Error(),
+				})
+				return false
+			}
+			if result {
+				h := c.Writer.Header()
+				h.Set("email", email)
+				return true
+			}
 			//h := c.Writer.Header()
 			//h.Set("email", email)
 

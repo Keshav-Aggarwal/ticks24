@@ -8,6 +8,7 @@ type Config struct {
 	FrontEnd       FrontEnd      `json:"FrontEnd"`
 	WebServer      WebServer     `json:"WebServer"`
 	AuthService    AuthService   `json:"AuthService"`
+	LoginService   AuthService   `json:"LoginService"`
 	AppDatabases   []AppDatabase `json:"AppDatabases"`
 	LogConfig      LogConfig     `json:"LogConfig"`
 }

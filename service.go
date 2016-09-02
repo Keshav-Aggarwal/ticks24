@@ -16,8 +16,6 @@ import (
 	"github.com/vivek-yadav/ticks24/utils"
 	"html/template"
 	"net/http"
-	"net/rpc"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -65,6 +63,14 @@ func (this *Service) SetCmdArgs() (bool, error) {
 // Else the call starts the server and returns, then it is up to you to hold the system to keep the
 // service running.
 func (this *Service) Start(isBlocking bool) {
+	this.RootRouter.POST("/login", this.AuthMiddleware.LoginHandler)
+	// Authorization group
+	authRouter := this.RootRouter.Group("/auth")
+	authRouter.Use(this.AuthMiddleware.MiddlewareFunc())
+	{
+		authRouter.GET("/refresh_token", this.AuthMiddleware.RefreshHandler)
+	}
+
 	var paths gin.RoutesInfo
 	this.RootRouter.GET("/_routes", func(c *gin.Context) {
 		c.JSON(http.StatusOK, paths)
@@ -105,21 +111,6 @@ func (this *Service) setupRootRouter() (bool, error) {
 	return true, nil
 }
 
-func (this *Service) ConnectAuthService() (client *rpc.Client, er error) {
-	typeCon := "tcp"
-
-	// TODO : to setup other type of connections
-	//if this.Config.AuthService.IsHttp {
-	//	typeCon = "http"
-	//}
-	path := this.Config.AuthService + ":" + strconv.Itoa(this.Config.AuthService.Port)
-	client, er = rpc.DialHTTP(typeCon, path)
-	if er != nil {
-		er = errors.New("ERROR : Failed to conenct to Auth Service: (" + path + " (\n\t" + er.Error() + "\n)")
-	}
-	return
-}
-
 func (this *Service) InitService() (bool, error) {
 	if len(this.Config.AppDatabases) > 0 {
 		this.AppDB.Config = &this.Config.AppDatabases[0]
@@ -129,11 +120,11 @@ func (this *Service) InitService() (bool, error) {
 		}
 	}
 
-	_, er := this.ConnectAuthService()
+	_, er := auth.ConnectAuthService(this.Config.AuthService.Ip, int(this.Config.AuthService.Port))
 	if er != nil {
 		return false, errors.New("ERROR : Failed to conenct to Auth Service (\n\t" + er.Error() + "\n)")
 	}
-	this.AuthMiddleware = auth.Setup(this)
+	this.AuthMiddleware = auth.Setup(&this.Config)
 
 	router := gin.New()
 	if this.Config.LogConfig.Path != "" {
