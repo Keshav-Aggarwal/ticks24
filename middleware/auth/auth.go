@@ -21,7 +21,8 @@ func ConnectAuthService(ip string, port int) (client *rpc.Client, er error) {
 	//	typeCon = "http"
 	//}
 	path := ip + ":" + strconv.Itoa(port)
-	client, er = rpc.DialHTTP(typeCon, path)
+	//client, er = rpc.DialHTTP(typeCon, path)
+	client, er = rpc.Dial(typeCon, path)
 	if er != nil {
 		er = errors.New("ERROR : Failed to conenct to Auth Service: (" + path + " (\n\t" + er.Error() + "\n)")
 	}
@@ -63,7 +64,7 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			req := AuthRequest{
 				Email:       email,
 				AppToken:    config.AppToken,
-				AccessLevel: utils.GetAccessLevel(c.Request.Method),
+				AccessLevel: int(utils.GetAccessLevel(c.Request.Method)),
 				Path:        c.Request.RequestURI,
 			}
 			var result bool
