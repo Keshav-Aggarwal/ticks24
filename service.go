@@ -120,10 +120,10 @@ func (this *Service) InitService() (bool, error) {
 		}
 	}
 
-	_, er := auth.ConnectAuthService(this.Config.AuthService.Ip, int(this.Config.AuthService.Port))
-	if er != nil {
-		return false, errors.New("ERROR : Failed to conenct to Auth Service (\n\t" + er.Error() + "\n)")
-	}
+	//_, er := auth.ConnectAuthService(this.Config.AuthService.Ip, int(this.Config.AuthService.Port))
+	//if er != nil {
+	//	return false, errors.New("ERROR : Failed to conenct to Auth Service (\n\t" + er.Error() + "\n)")
+	//}
 	this.AuthMiddleware = auth.Setup(&this.Config)
 
 	router := gin.New()

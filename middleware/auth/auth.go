@@ -74,10 +74,7 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			}
 			er = client.Call("AuthRequest.IsAuth", &req, &result)
 			if er != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code":    http.StatusBadRequest,
-					"message": er.Error(),
-				})
+				tracelog.Errorf(er, "auth", "Authorization", "Not valid credientials.")
 				return false
 			}
 			if result {

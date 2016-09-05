@@ -1,5 +1,5 @@
-app_name="LocoLink"
-app_token="App1Token"
+app_name="LocoLogic"
+app_token="LocoLogicToken"
 
 [front_end]
 views_path="./example/front-end/dist"
