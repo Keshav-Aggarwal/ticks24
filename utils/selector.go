@@ -194,7 +194,7 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				continue
 			}
 			if strings.HasPrefix(value, "ObjectId(") && strings.HasSuffix(value, ")") {
-				value = strings.Split(strings.SplitAfter(value, "(")[0], ")")[0]
+				value = strings.Split(strings.SplitAfter(value, "(")[1], ")")[0]
 				if bson.IsObjectIdHex(value) {
 					orArray = append(orArray, bson.M{key: bson.ObjectIdHex(value)})
 					continue
