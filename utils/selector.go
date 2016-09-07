@@ -129,6 +129,13 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				}
 				continue
 			}
+			if strings.HasPrefix(value, "ObjectId(") && strings.HasSuffix(value, ")") {
+				value = strings.Split(strings.SplitAfter(value, "("), ")")[0]
+				if bson.IsObjectIdHex(value) {
+					andArray = append(andArray, bson.M{key: bson.ObjectIdHex(value)})
+					continue
+				}
+			}
 			andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
 		}
 	}
@@ -160,9 +167,9 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 			rInt, er = strconv.ParseInt(value, 10, 64)
 			if er == nil {
 				if opr == "" {
-					andArray = append(andArray, bson.M{key: rInt})
+					orArray = append(orArray, bson.M{key: rInt})
 				} else {
-					andArray = append(andArray, bson.M{key: bson.M{opr: rInt}})
+					orArray = append(orArray, bson.M{key: bson.M{opr: rInt}})
 				}
 				continue
 			}
@@ -170,9 +177,9 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 			rBool, er = strconv.ParseBool(value)
 			if er == nil {
 				if opr == "" {
-					andArray = append(andArray, bson.M{key: rBool})
+					orArray = append(orArray, bson.M{key: rBool})
 				} else {
-					andArray = append(andArray, bson.M{key: bson.M{opr: rBool}})
+					orArray = append(orArray, bson.M{key: bson.M{opr: rBool}})
 				}
 				continue
 			}
@@ -180,13 +187,20 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 			rFloat, er = strconv.ParseFloat(value, 64)
 			if er == nil {
 				if opr == "" {
-					andArray = append(andArray, bson.M{key: rFloat})
+					orArray = append(orArray, bson.M{key: rFloat})
 				} else {
-					andArray = append(andArray, bson.M{key: bson.M{opr: rFloat}})
+					orArray = append(orArray, bson.M{key: bson.M{opr: rFloat}})
 				}
 				continue
 			}
-			andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
+			if strings.HasPrefix(value, "ObjectId(") && strings.HasSuffix(value, ")") {
+				value = strings.Split(strings.SplitAfter(value, "("), ")")[0]
+				if bson.IsObjectIdHex(value) {
+					orArray = append(orArray, bson.M{key: bson.ObjectIdHex(value)})
+					continue
+				}
+			}
+			orArray = append(orArray, bson.M{key: bson.M{"$regex": value}})
 		}
 	}
 
