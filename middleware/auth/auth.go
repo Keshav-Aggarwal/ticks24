@@ -44,7 +44,9 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			client, er := ConnectAuthService(config.LoginService.Ip, int(config.LoginService.Port))
 			if er != nil {
 				tracelog.Errorf(er, "auth", "Login", "Failed to connect to Login service")
+				return email, false
 			}
+			defer client.Close()
 			er = client.Call("User.IsLogin", &user, &result)
 			if er != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -71,7 +73,9 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			client, er := ConnectAuthService(config.AuthService.Ip, int(config.AuthService.Port))
 			if er != nil {
 				tracelog.Errorf(er, "auth", "Authoriation", "Failed to connect to auth service")
+				return false
 			}
+			defer client.Close()
 			er = client.Call("AuthRequest.IsAuth", &req, &result)
 			if er != nil {
 				tracelog.Errorf(er, "auth", "Authorization", "Not valid credientials.")
@@ -82,6 +86,7 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 				h.Set("email", email)
 				return true
 			}
+
 			//h := c.Writer.Header()
 			//h.Set("email", email)
 
