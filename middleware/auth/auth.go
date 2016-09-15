@@ -58,6 +58,7 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			if result {
 				h := c.Writer.Header()
 				h.Set("email", email)
+				h.Set("access-control-expose-headers", "email")
 				return email, true
 			}
 			return email, result
@@ -84,6 +85,7 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 			if result {
 				h := c.Writer.Header()
 				h.Set("email", email)
+				h.Set("access-control-expose-headers", "email")
 				return true
 			}
 
