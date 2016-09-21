@@ -63,12 +63,16 @@ func (this *Service) SetCmdArgs() (bool, error) {
 // Else the call starts the server and returns, then it is up to you to hold the system to keep the
 // service running.
 func (this *Service) Start(isBlocking bool) {
-	this.RootRouter.POST("/login", this.AuthMiddleware.LoginHandler)
-	// Authorization group
-	authRouter := this.RootRouter.Group("/auth")
-	authRouter.Use(this.AuthMiddleware.MiddlewareFunc())
-	{
-		authRouter.GET("/refresh_token", this.AuthMiddleware.RefreshHandler)
+	if this.Config.LoginService.Ip != "" {
+		this.RootRouter.POST("/login", this.AuthMiddleware.LoginHandler)
+	}
+	if this.Config.AuthService.Ip != "" {
+		// Authorization group
+		authRouter := this.RootRouter.Group("/auth")
+		authRouter.Use(this.AuthMiddleware.MiddlewareFunc())
+		{
+			authRouter.GET("/refresh_token", this.AuthMiddleware.RefreshHandler)
+		}
 	}
 
 	var paths gin.RoutesInfo
