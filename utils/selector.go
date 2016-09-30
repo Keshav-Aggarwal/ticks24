@@ -104,6 +104,7 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				values := strings.Split(value, ":")
 				values = strings.Split(values[1], ",")
 				andArray = append(andArray, bson.M{key: bson.M{"$in": values}})
+				continue
 			}
 
 			rInt, er = strconv.ParseInt(value, 10, 64)
@@ -168,6 +169,13 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				values := strings.Split(value, "<=")
 				opr = "$lte"
 				value = values[1]
+			}
+
+			if strings.HasPrefix(value, "in:") {
+				values := strings.Split(value, ":")
+				values = strings.Split(values[1], ",")
+				andArray = append(andArray, bson.M{key: bson.M{"$in": values}})
+				continue
 			}
 
 			rInt, er = strconv.ParseInt(value, 10, 64)
