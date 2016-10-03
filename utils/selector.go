@@ -4,6 +4,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func Selector(q ...string) (r bson.M) {
@@ -98,6 +99,25 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				values := strings.Split(value, "<")
 				opr = "$lt"
 				value = values[1]
+			} else if strings.HasPrefix(value, "!=") {
+				values := strings.Split(value, "!=")
+				opr = "$ne"
+				value = values[1]
+			} else if strings.HasPrefix(value, "==") {
+				values := strings.Split(value, "==")
+				opr = "$eq"
+				value = values[1]
+			}
+
+			layout := "2006-01-02T15:04:05.999-07:00"
+			t, err := time.Parse(layout, value)
+			if err == nil {
+				if opr == "" {
+					andArray = append(andArray, bson.M{key: t})
+				} else {
+					andArray = append(andArray, bson.M{key: bson.M{opr: t}})
+				}
+				continue
 			}
 
 			if strings.HasPrefix(value, "in:") {
@@ -169,6 +189,25 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				values := strings.Split(value, "<=")
 				opr = "$lte"
 				value = values[1]
+			} else if strings.HasPrefix(value, "!=") {
+				values := strings.Split(value, "!=")
+				opr = "$ne"
+				value = values[1]
+			} else if strings.HasPrefix(value, "==") {
+				values := strings.Split(value, "==")
+				opr = "$eq"
+				value = values[1]
+			}
+
+			layout := "2006-01-02T15:04:05.999-07:00"
+			t, err := time.Parse(layout, value)
+			if err == nil {
+				if opr == "" {
+					andArray = append(andArray, bson.M{key: t})
+				} else {
+					andArray = append(andArray, bson.M{key: bson.M{opr: t}})
+				}
+				continue
 			}
 
 			if strings.HasPrefix(value, "in:") {
