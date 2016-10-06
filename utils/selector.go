@@ -109,7 +109,7 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				value = values[1]
 			}
 
-			layout := "2006-01-02T15:04:05.999-07:00"
+			layout := "2006-01-02T15:04:05.999Z"
 			t, err := time.Parse(layout, value)
 			if err == nil {
 				if opr == "" {
@@ -199,7 +199,7 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				value = values[1]
 			}
 
-			layout := "2006-01-02T15:04:05.999-07:00"
+			layout := "2006-01-02T15:04:05.999Z"
 			t, err := time.Parse(layout, value)
 			if err == nil {
 				if opr == "" {
