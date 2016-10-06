@@ -163,7 +163,11 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 					continue
 				}
 			}
-			andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
+			if strings.HasPrefix(value, "!") {
+				andArray = append(andArray, bson.M{key: bson.M{"$regex": value, "$options": "i"}})
+			} else {
+				andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
+			}
 		}
 	}
 
@@ -203,9 +207,9 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 			t, err := time.Parse(layout, value)
 			if err == nil {
 				if opr == "" {
-					andArray = append(andArray, bson.M{key: t})
+					orArray = append(orArray, bson.M{key: t})
 				} else {
-					andArray = append(andArray, bson.M{key: bson.M{opr: t}})
+					orArray = append(orArray, bson.M{key: bson.M{opr: t}})
 				}
 				continue
 			}
@@ -213,7 +217,7 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 			if strings.HasPrefix(value, "in:") {
 				values := strings.Split(value, ":")
 				values = strings.Split(values[1], ",")
-				andArray = append(andArray, bson.M{key: bson.M{"$in": values}})
+				orArray = append(orArray, bson.M{key: bson.M{"$in": values}})
 				continue
 			}
 
@@ -253,7 +257,11 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 					continue
 				}
 			}
-			orArray = append(orArray, bson.M{key: bson.M{"$regex": value}})
+			if strings.HasPrefix(value, "!") {
+				orArray = append(orArray, bson.M{key: bson.M{"$regex": value, "$options": "i"}})
+			} else {
+				orArray = append(orArray, bson.M{key: bson.M{"$regex": value}})
+			}
 		}
 	}
 
