@@ -52,9 +52,58 @@ func DeleteOne(collectionName string, c *gin.Context) (er error) {
 	return
 }
 
+func DeleteOneWithString(collectionName string, id string) (er error) {
+	var idHex bson.ObjectId
+	if bson.IsObjectIdHex(id) {
+		idHex = bson.ObjectIdHex(id)
+	} else {
+		er = errors.New("ERROR : Id is not proper")
+		return
+	}
+
+	authDB, _ := mongo.GetAppDB()
+	con, _ := authDB.Connect()
+	defer con.Close()
+	uc := con.DB("").C(collectionName)
+	er = uc.RemoveId(idHex)
+	if er != nil {
+		er = errors.New("ERROR : Failed to Delete " + collectionName + " (\n\t" + er.Error() + "\n)")
+		return
+	}
+	return
+}
+
 func DeleteAll(collectionName string, c *gin.Context) (er error) {
 	var ids []string
 	c.Bind(&ids)
+	idHexs := make([]bson.ObjectId, len(ids))
+	for i, v := range ids {
+		if bson.IsObjectIdHex(v) {
+			idHexs[i] = bson.ObjectIdHex(v)
+		} else {
+			er = errors.New("ERROR : Id is not proper (" + v + ")")
+			return
+		}
+	}
+
+	authDB, _ := mongo.GetAppDB()
+	con, _ := authDB.Connect()
+	defer con.Close()
+	uc := con.DB("").C(collectionName)
+	var info *mgo.ChangeInfo
+	info, er = uc.RemoveAll(bson.M{"_id": bson.M{"$in": idHexs}})
+	if er != nil {
+		er = errors.New("ERROR : Failed to Delete " + collectionName + " (\n\t" + er.Error() + "\n)")
+		return
+	}
+	if info.Removed == 0 {
+		er = errors.New("No of " + collectionName + " Removed :" + strconv.Itoa(info.Removed) + " Out matched " + collectionName + " : " + strconv.Itoa(info.Matched))
+		return
+	}
+	return
+}
+
+func DeleteAllWitArray(collectionName string, ids []string) (er error) {
 	idHexs := make([]bson.ObjectId, len(ids))
 	for i, v := range ids {
 		if bson.IsObjectIdHex(v) {
@@ -149,6 +198,28 @@ func UpdateOneById(collectionName string, c *gin.Context, updatedValues map[stri
 	return
 }
 
+func UpdateOneByIdString(collectionName string, id string, updatedValues map[string]interface{}) (uu interface{}, er error) {
+	var idHex bson.ObjectId
+	if bson.IsObjectIdHex(id) {
+		idHex = bson.ObjectIdHex(id)
+	} else {
+		er = errors.New("ERROR : Id is not proper")
+		return
+	}
+	authDB, _ := mongo.GetAppDB()
+	con, _ := authDB.Connect()
+	defer con.Close()
+	uc := con.DB("").C(collectionName)
+	update := bson.M{"$set": updatedValues}
+	er = uc.UpdateId(idHex, update)
+	if er != nil {
+		er = errors.New("ERROR : Failed to Update " + collectionName + " (\n\t" + er.Error() + "\n)")
+		return
+	}
+	uu = updatedValues
+	return
+}
+
 func Update(collectionName string, c *gin.Context, updatedValues map[string]interface{}, dbHandler func(*mgo.Collection, bson.M, bson.M) (interface{}, error)) (uu interface{}, er error) {
 
 	and := c.Query("and")
@@ -159,6 +230,34 @@ func Update(collectionName string, c *gin.Context, updatedValues map[string]inte
 	}
 
 	or := c.Query("or")
+	var orCond []map[string]string
+	if or != "" {
+		orBytes := []byte(or)
+		er = json.Unmarshal(orBytes, &orCond)
+	}
+
+	if er != nil {
+		return
+	}
+
+	uu, er = updateFromDB(collectionName, dbHandler, andCond, orCond, updatedValues)
+
+	if er != nil {
+		return
+	}
+	return
+}
+
+func UpdateWithMap(collectionName string, c map[string]string, updatedValues map[string]interface{}, dbHandler func(*mgo.Collection, bson.M, bson.M) (interface{}, error)) (uu interface{}, er error) {
+
+	and := c["and"]
+	var andCond []map[string]string
+	if and != "" {
+		andBytes := []byte(and)
+		er = json.Unmarshal(andBytes, &andCond)
+	}
+
+	or := c["or"]
 	var orCond []map[string]string
 	if or != "" {
 		orBytes := []byte(or)
@@ -286,6 +385,78 @@ func FetchAll(collectionName string, c *gin.Context, dbHandler func(*mgo.Query) 
 	return
 }
 
+func FetchAllWithMap(collectionName string, c map[string]string, dbHandler func(*mgo.Query) (interface{}, error)) (r Result, er error) {
+	//r := Result{}
+	var uu interface{}
+
+	var page, size, total int64
+	var fields []string
+	var exfields []string
+	var sorts []string
+	sort := c["sort"]
+	if sort != "" {
+		sorts = strings.Split(sort, ",")
+	}
+	//u := models.Users{}
+	field := c["fields"]
+	if field != "" {
+		fields = strings.Split(field, ",")
+	}
+	exfield := c["excludeFields"]
+	if exfield != "" {
+		exfields = strings.Split(exfield, ",")
+	}
+	pageS := c["page"]
+	sizeS := c["size"]
+	page, er = strconv.ParseInt(pageS, 10, 64)
+	if er != nil {
+		page = 1
+		er = nil
+	}
+	size, er = strconv.ParseInt(sizeS, 10, 64)
+	if er != nil {
+		size = 10
+		er = nil
+	}
+
+	and := c["and"]
+	var andCond []map[string]string
+	if and != "" {
+		andBytes := []byte(and)
+		er = json.Unmarshal(andBytes, &andCond)
+	}
+
+	or := c["or"]
+	var orCond []map[string]string
+	if or != "" {
+		orBytes := []byte(or)
+		er = json.Unmarshal(orBytes, &orCond)
+	}
+
+	if er != nil {
+		return
+	}
+
+	if len(exfields) > 0 {
+		uu, total, er = getListFromDB(collectionName, dbHandler, exfields, true, sorts, andCond, orCond, page, size)
+	} else {
+		uu, total, er = getListFromDB(collectionName, dbHandler, fields, false, sorts, andCond, orCond, page, size)
+	}
+
+	if er != nil {
+		return
+	}
+
+	r.Total = total
+	if r.Total != 0 {
+		r.Page = page
+		r.Size = size
+		r.URL = "internal Call"
+	}
+	r.Data = uu
+	return
+}
+
 func getListFromDB(collectionName string, queryResolver func(*mgo.Query) (interface{}, error), fields []string, isExclude bool, sort []string, andCond []map[string]string, orCond []map[string]string, page, size int64) (interface{}, int64, error) {
 	var u interface{}
 
@@ -354,6 +525,37 @@ func FetchById(collectionName string, c *gin.Context, dbHandler func(*mgo.Query)
 	return
 }
 
+func FetchByIdWithMap(collectionName string, c map[string]string, dbHandler func(*mgo.Query) (interface{}, error)) (uu interface{}, er error) {
+
+	var fields []string
+	var exfields []string
+	//u := models.Users{}
+	field := c["fields"]
+	if field != "" {
+		fields = strings.Split(field, ",")
+	}
+	exfield := c["excludeFields"]
+	if exfield != "" {
+		exfields = strings.Split(exfield, ",")
+	}
+
+	id := c["id"]
+	if er != nil {
+		return
+	}
+
+	if len(exfields) > 0 {
+		uu, er = getByIdFromDB(collectionName, dbHandler, exfields, true, id)
+	} else {
+		uu, er = getByIdFromDB(collectionName, dbHandler, fields, false, id)
+	}
+	if er != nil {
+		return
+	}
+
+	return
+}
+
 func getByIdFromDB(collectionName string, queryResolver func(*mgo.Query) (interface{}, error), fields []string, isExclude bool, id string) (interface{}, error) {
 	var u interface{}
 
@@ -406,6 +608,50 @@ func FetchOne(collectionName string, c *gin.Context, dbHandler func(*mgo.Query) 
 	}
 
 	or := c.Query("or")
+	var orCond []map[string]string
+	if or != "" {
+		orBytes := []byte(or)
+		er = json.Unmarshal(orBytes, &orCond)
+	}
+
+	if er != nil {
+		return
+	}
+
+	if len(exfields) > 0 {
+		uu, er = getFromDB(collectionName, dbHandler, exfields, true, andCond, orCond)
+	} else {
+		uu, er = getFromDB(collectionName, dbHandler, fields, false, andCond, orCond)
+	}
+
+	if er != nil {
+		return
+	}
+	return
+}
+
+func FetchOneWithMap(collectionName string, c map[string]string, dbHandler func(*mgo.Query) (interface{}, error)) (uu interface{}, er error) {
+
+	var fields []string
+	var exfields []string
+	//u := models.Users{}
+	field := c["fields"]
+	if field != "" {
+		fields = strings.Split(field, ",")
+	}
+	exfield := c["excludeFields"]
+	if exfield != "" {
+		exfields = strings.Split(exfield, ",")
+	}
+
+	and := c["and"]
+	var andCond []map[string]string
+	if and != "" {
+		andBytes := []byte(and)
+		er = json.Unmarshal(andBytes, &andCond)
+	}
+
+	or := c["or"]
 	var orCond []map[string]string
 	if or != "" {
 		orBytes := []byte(or)
