@@ -167,7 +167,11 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				value = strings.Split(value, "!")[1]
 				andArray = append(andArray, bson.M{key: bson.M{"$regex": value, "$options": "i"}})
 			} else {
-				andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
+				if opr == "" {
+					andArray = append(andArray, bson.M{key: bson.M{"$regex": value}})
+				} else {
+					andArray = append(andArray, bson.M{key: bson.M{opr: value}})
+				}
 			}
 		}
 	}
@@ -262,7 +266,11 @@ func GetBsonFindArray(and []map[string]string, or []map[string]string) (query bs
 				value = strings.Split(value, "!")[1]
 				orArray = append(orArray, bson.M{key: bson.M{"$regex": value, "$options": "i"}})
 			} else {
-				orArray = append(orArray, bson.M{key: bson.M{"$regex": value}})
+				if opr == "" {
+					orArray = append(orArray, bson.M{key: bson.M{"$regex": value}})
+				} else {
+					orArray = append(orArray, bson.M{key: bson.M{opr: value}})
+				}
 			}
 		}
 	}
