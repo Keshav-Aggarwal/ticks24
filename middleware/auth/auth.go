@@ -13,6 +13,15 @@ import (
 	"time"
 )
 
+type login struct {
+	Email string `form:"username" json:"email" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
+
+type User struct {
+	email string
+}
+
 func ConnectAuthService(ip string, port int) (client *rpc.Client, er error) {
 	typeCon := "tcp"
 
@@ -35,41 +44,54 @@ func Setup(config *config.Config) *jwt.GinJWTMiddleware {
 		Key:        []byte("secret key"),
 		Timeout:    time.Hour,
 		MaxRefresh: time.Hour,
-		Authenticator: func(email string, password string, c *gin.Context) (string, bool) {
+
+		Authenticator: func(c *gin.Context) (interface{}, error) {
+		
+			var loginVals login
+			if err := c.ShouldBind(&loginVals); err != nil {
+				return "", jwt.ErrFailedAuthentication
+			}
+			email := loginVals.Email
+			password := loginVals.Password
 			user := Login{
 				Email:    email,
 				Password: password,
 			}
+
 			var result bool
 			client, er := ConnectAuthService(config.LoginService.Ip, int(config.LoginService.Port))
 			if er != nil {
 				tracelog.Errorf(er, "auth", "Login", "Failed to connect to Login service")
-				return email, false
+				return email, jwt.ErrFailedAuthentication
 			}
 			defer client.Close()
+
 			er = client.Call("User.IsLogin", &user, &result)
 			if er != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"code":    http.StatusBadRequest,
 					"message": er.Error(),
 				})
-				return email, false
+				return email, jwt.ErrFailedAuthentication
 			}
 			if result {
 				h := c.Writer.Header()
 				h.Set("email", email)
 				h.Set("access-control-expose-headers", "email")
-				return email, true
+				return email, nil
 			}
-			return email, result
+			return email, nil
 		},
-		Authorizator: func(email string, c *gin.Context) bool {
+		Authorizator: func(data interface{}, c *gin.Context) bool {
+			var email = data.(*User).email
+
 			req := AuthRequest{
 				Email:       email,
 				AppToken:    config.AppToken,
 				AccessLevel: int(utils.GetAccessLevel(c.Request.Method)),
 				Path:        c.Request.RequestURI,
 			}
+
 			var result bool
 			client, er := ConnectAuthService(config.AuthService.Ip, int(config.AuthService.Port))
 			if er != nil {
