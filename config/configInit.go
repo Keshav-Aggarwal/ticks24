@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/naoina/toml"
-	"github.com/vivek-yadav/ticks24/utils"
+	"github.com/keshav-aggarwal/ticks24/utils"
 	"io/ioutil"
 	"os"
 	"strconv"

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/vivek-yadav/ticks24"
+	"github.com/keshav-aggarwal/ticks24"
 	"net/http"
 )
 

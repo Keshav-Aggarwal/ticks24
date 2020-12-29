@@ -1,7 +1,7 @@
 package authService
 
 import (
-//"github.com/vivek-yadav/ticks24/models/authRequest"
+//"github.com/keshav-aggarwal/ticks24/models/authRequest"
 //"net/rpc"
 //"net"
 //"net/http"

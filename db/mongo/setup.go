@@ -3,7 +3,7 @@ package mongo
 import (
 	"errors"
 	"fmt"
-	"github.com/vivek-yadav/ticks24/config"
+	"github.com/keshav-aggarwal/ticks24/config"
 	"gopkg.in/mgo.v2"
 	"log"
 	"os/exec"
